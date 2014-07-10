@@ -1,0 +1,10 @@
+Basic negate test
+---
+metaconfigservice=/etc/example/exampled.conf
+multiline
+negate
+---
+^hosts
+^port
+^master
+^description
