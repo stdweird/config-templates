@@ -1,6 +1,9 @@
-Base test for config
+Simple base test
 ---
-multiline
+metaconfigservice=/etc/example/exampled.conf
 ---
-$wontmatch^
-
+name
+hosts
+port
+master
+description
