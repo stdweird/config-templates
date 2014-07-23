@@ -3,13 +3,15 @@
 @[%-        incl  -%]
 [%      END -%]
 [% END -%]
-
+main
+[% DUMP main %]
+endmain
 [% FOREACH pair IN main.pairs -%]
 [%-     FOREACH item IN pair.value -%]
 [%          pair.key %] {
 [%          FILTER indent -%]
 [%-             FOREACH attr IN item.pairs -%]
-[%                  INCLUDE metaconfig/bacula/attribute.tt key=attr.key value=attr.value %]
+[%                  INCLUDE metaconfig/bacula/attribute.tt key2=attr.key value=attr.value %]
 [%              END -%]
 [%-         END -%]
 }

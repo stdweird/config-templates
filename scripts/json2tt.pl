@@ -75,12 +75,16 @@ sub app_options {
           DEFAULT => undef },
         
         { NAME    => "strict",
-          HELP    => "don't ignore the use of undefined variables",
+          HELP    => "ignore the use of undefined variables",
           DEFAULT => 0 },
 
         { NAME    => "dumpjson",
           HELP    => "dump the json, no templating",
           DEFAULT => 0 },
+
+        { NAME    => "syntax",
+          HELP    => "Alloy syntax to use",
+          DEFAULT => 'alloy' }, 
 
         );
 
@@ -132,7 +136,9 @@ package main;
 use strict;
 use warnings;
 use JSON::XS;
-use Template 2.25;
+# import roles necessary for running TT
+use Template::Alloy qw(Parse Play Compile TT);
+
 use Data::Dumper;
 
 use strict;
@@ -185,6 +191,7 @@ my $template_opts = {};
 
 $this_app->debug(3,"Set STRICT template option to ", $this_app->option('strict'));
 $template_opts->{STRICT} = $this_app->option('strict');
+$template_opts->{SYNTAX} = $this_app->option('syntax');
 
 if ($this_app->option("includepath")) {
     $this_app->debug(3,"Set INCLUDE_PATH template option to ", $this_app->option('includepath'));
@@ -231,6 +238,7 @@ if ($relpath) {
         $json = $json->{$path};
     }
 }
+    print Dumper($json), "\n";
 
 if ($this_app->option("dumpjson")) {
     $this_app->debug(4,"Dumping json, no templating");
@@ -246,7 +254,7 @@ if ($this_app->option("template")) {
 
 if ($tt) {
     $this_app->debug(3,"tt file $tt opts ", Dumper($template_opts));
-    my $tpl = Template->new($template_opts);
+    my $tpl = Template::Alloy->new($template_opts);
     if($tpl->process($tt, $json)) {
         $this_app->verbose("Succesful template processing.")
     } else {

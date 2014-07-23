@@ -2,7 +2,9 @@
 [%- boolean = ['Monitor', 'Random_Access', 'Label_Media', 'Autochanger', 'Autoselect',
                'AutomaticMount', 'RemovableMedia', 'AlwaysOpen'] -%]
 [%- commasep = ['Device'] %]
+[%- key = key2 -%]
 [%- newkey = key.replace('_',' ') -%]
+key [% key %] [% newkey %] value [% value %] [% DUMP key %] [% DUMP value %] 
 [%- SWITCH key -%]
 [%-     CASE 'messagedestinations' -%]
 [%          INCLUDE "metaconfig/bacula/messagedestinations.tt" messages=value %]
@@ -15,7 +17,7 @@
 [%-                 CASE quoted -%]
  "[%                    value %]"
 [%-                 CASE boolean -%]
- [%                     value ? 'yes' : 'no' %]
+boolean [% value %] [%                     value ? 'yes' : 'no' %]
 [%-                 CASE commasep -%]
  [%                     value.join(', ') %]
 [%-                 CASE -%]
