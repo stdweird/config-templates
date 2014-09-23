@@ -82,6 +82,10 @@ sub app_options {
           HELP    => "dump the json, no templating",
           DEFAULT => 0 },
 
+        { NAME    => "syntax",
+          HELP    => "Alloy syntax to use",
+          DEFAULT => 'alloy' }, 
+
         );
 
     return(\@array);
@@ -132,7 +136,9 @@ package main;
 use strict;
 use warnings;
 use JSON::XS;
-use Template 2.25;
+# import roles necessary for running TT
+use Template::Alloy qw(Parse Play Compile TT);
+
 use Data::Dumper;
 use Config::General;
 
@@ -186,6 +192,7 @@ my $template_opts = {};
 
 $this_app->debug(3,"Set STRICT template option to ", $this_app->option('strict'));
 $template_opts->{STRICT} = $this_app->option('strict');
+$template_opts->{SYNTAX} = $this_app->option('syntax');
 
 if ($this_app->option("includepath")) {
     $this_app->debug(3,"Set INCLUDE_PATH template option to ", $this_app->option('includepath'));
@@ -260,7 +267,7 @@ if ($mm eq "general") {
     $output = $c->save_string();
 } elsif ($tt) {
     $this_app->debug(3,"tt file $tt opts ", Dumper($template_opts));
-    my $tpl = Template->new($template_opts);
+    my $tpl = Template::Alloy->new($template_opts);
     if($tpl->process($tt, $json, \$output)) {
         $this_app->verbose("Succesful template processing.")
     } else {
