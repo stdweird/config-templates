@@ -34,17 +34,22 @@ Returns a new object, accepts the following options
 
 =over
 
+=item basepath
+
+Basepath that points to the templates.
+
 =item service
 
-The name of the service
+The name of the service (the service is a subdirectory of the basepath).
+
+=item ttpath
+
+Path to the TT files. If undefined, C<basepath/service> is used. 
+If the path is not absolute, search from basepath.  
 
 =item version
 
-If a specific version is to be tested (undef assumes no version)
-
-=item basepath
-
-Basepath that points to the templates (the service is a subdirectory of the basepath)
+If a specific version is to be tested (undef assumes no version).
 
 =back
 
@@ -56,22 +61,23 @@ sub new {
     my $proto = ref($that) || $that;
     my $self = { @_ };
 
-    # check if servicepath exists
-    if (! -d $self->{basepath}) {
-        notok($self, "basepath $self->{basepath} exists");
-        return;
-    }
-    if (! $self->{service}) {
-        notok($self, "service defined");
-        return;
-    }
-    $self->{servicepath} = "$self->{basepath}/$self->{service}";
-    if (! -d $self->{servicepath}) {
-        notok($self, "basepath $self->{servicepath} exists");
-        return;
-    }
-    
     bless($self, $proto);
+
+    ok(-d $self->{basepath}, "basepath $self->{basepath} exists");
+
+    if ($self->{ttpath}) {
+        if ($self->{ttpath} !~ m/^\//) {
+            $self->verbose("Relative ttpath $self->{ttpath} found");
+            $self->{ttpath} = "$self->{basepath}/$self->{ttpath}";
+        }
+    } else {
+        # derive from service
+        ok($self->{service}, "service $self->{service} defined for ttpath");
+        $self->{ttpath} = "$self->{basepath}/$self->{service}";
+    }
+
+    ok(-d $self->{ttpath}, "ttpath $self->{ttpath} exists");
+    
     return $self;
 }
 
@@ -96,7 +102,7 @@ sub verbose
 # error logger, uses diag
 sub error
 {
-    my ($self, @args);
+    my ($self, @args) = @_;
     my $msg = join('', @args);
     diag("ERROR: $msg");
     return $msg;
@@ -105,15 +111,15 @@ sub error
 # Fail a test, use error 
 sub notok 
 {
-    # so we can call it also from within new() where $self-> is not possible
-    my $msg = error(@_);
+    my ($self, @args) = @_;
+    my $msg = $self->error(@args);
     ok(0, $msg);
 }
 
-# Walk the servicepath and gather all TT files
+# Walk the ttpath and gather all TT files
 # a TT file is a text file with an .tt extension
 # which is not 'test' or 'pan' directory.
-# Returns a reference to list with relative TT paths 
+# Returns a reference to list with TT paths 
 # (relative to the basepath) and a to list of misplaced files.
 sub gather_tt 
 {
@@ -121,9 +127,12 @@ sub gather_tt
     
     my @tts;
     my @misplaced_tts;
+    
+    my $relpath = $self->{basepath};
+    
     my $wanted = sub { 
         my $name = $File::Find::name;
-        $name =~ s/^$self->{basepath}\/+//;
+        $name =~ s/^$relpath\/+//;
         if (-T && m/\.(tt)$/) {
             if ($name !~ m/(^|\/)(pan|tests)\//) {
                 push(@tts, $name);    
@@ -133,7 +142,7 @@ sub gather_tt
         }
     };
 
-    find($wanted, $self->{servicepath});
+    find($wanted, $self->{ttpath});
 
     return \@tts, \@misplaced_tts;
 }
