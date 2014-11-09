@@ -25,5 +25,6 @@ ok($dt->can('verbose'), "Object instance has verbose method");
 ok($dt->can('error'), "Object instance has error method");
 
 ok($dt->can('notok'), "Object instance has notok method");
+ok($dt->can('gather_pan'), "Object instance has gather_pan method");
 
 done_testing();

@@ -11,6 +11,11 @@ package Test::Quattor::Object;
 our @ISA;
 use Test::More;
 
+use File::Basename;
+use File::Find;
+use Cwd 'abs_path';
+
+
 sub new {
     my $that = shift;
     my $proto = ref($that) || $that;
@@ -27,8 +32,16 @@ sub _initialize
 {
     # nothing to do here
 }
-    
-# info-type logger, calls diag
+
+=pod
+
+=head2 info    
+
+info-type logger, calls diag. 
+Arguments are converted in message, prefixed with 'INFO'.
+
+=cut
+
 sub info 
 {
     my ($self, @args) = @_;
@@ -37,7 +50,15 @@ sub info
     return $msg;
 }
 
-# verbose-type logger, calls note
+=pod
+
+=head2 verbose
+
+verbose-type logger, calls note
+Arguments are converted in message, prefixed with 'VERBOSE'.
+
+=cut
+
 sub verbose 
 {
     my ($self, @args) = @_;
@@ -46,7 +67,15 @@ sub verbose
     return $msg;
 }   
 
-# error logger, uses diag
+=pod
+
+=head2 error
+
+error-type logger, calls diag
+Arguments are converted in message, prefixed with 'ERROR'.
+
+=cut
+
 sub error
 {
     my ($self, @args) = @_;
@@ -55,12 +84,95 @@ sub error
     return $msg;
 }
 
-# Fail a test, use error 
+=pod
+
+=head2 notok
+
+Fail a test with message, use error to log the message.
+Arguments are converted in message.
+
+=cut
+
 sub notok 
 {
     my ($self, @args) = @_;
     my $msg = $self->error(@args);
     ok(0, $msg);
 }
+
+=pod 
+
+=head2 gather_pan
+
+Walk the C<panpath> and gather all pan templates
+A pan template is a text file with an C<.pan> extension; 
+they are considered 'invalid' when the C<pannamespace> is not 
+correct.
+
+Returns a reference to hash with path 
+(relative to C<relpath>) and type of pan templates, 
+and an arrayreference to the invalid pan templates.
+
+=cut
+
+sub gather_pan 
+{
+    my ($self, $relpath, $panpath, $pannamespace) = @_;
+
+    ok(-d $relpath, "relpath $relpath exists and is directory");
+    ok(-d $panpath, "panpath $panpath exists and is directory");
+
+    # sanitize the namespace
+    $pannamespace =~ s/\/+/\//g;
+    $pannamespace =~ s/\/$//;
+    
+    my (%pans, @invalid_pans);
+    
+    my $namespacereg = qr{^(declaration|unique|object|structure)\stemplate\s$pannamespace/(\S+);$};
+    $self->verbose("Namespace regex pattern $namespacereg");
+    
+    my $wanted = sub {
+        my $name = $File::Find::name;
+        $name =~ s/^$relpath\/+//;
+
+        # relative to namespace
+        my $panrel = dirname($File::Find::name);
+        $panrel =~ s/^$panpath\/*//;
+        $panrel .= '/' if $panrel; # add trailing / here
+
+        if (-T && m/(.*)\.(pan)$/) {
+            my $tplname = basename($1);
+            
+            my $expectedname = "$panrel$tplname";
+
+            # must match template namespace
+            open (TPL, $_);
+            my $type;
+            while (my $line = <TPL>) {
+                chomp($line); # no newline in regexp
+                if ($line =~ m/$namespacereg/) {
+                    if ($2 eq $expectedname) {
+                        $self->verbose("Found matching template $2 type $1");
+                        $type = $1 ;
+                    } else {
+                        $self->verbose("Found mismatch template $2 type $1 with expected name $expectedname");
+                    }
+                }
+            }
+            close(TPL);
+            if ($type) {
+                $pans{$name} = $type;                
+            } else {
+                $self->verbose("Found invalid template $name (expectedname $expectedname)");
+                push(@invalid_pans, $name);
+            };
+        }
+    };
+
+    find($wanted, $panpath);
+
+    return \%pans, \@invalid_pans;
+}
+
 
 1;

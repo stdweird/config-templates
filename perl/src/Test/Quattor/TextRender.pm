@@ -201,80 +201,19 @@ sub test_gather_tt
     }
 }
 
-
-# check the pan section, prepare proper directory structure to use the schema
-#   at least one schema.pan must exist
-
-=pod 
+=pod
 
 =head2 gather_pan
 
-Walk the C<panpath> and gather all pan templates
-A pan template is a text file with an C<.pan> extension; 
-they are considered 'invalid' when the C<pannamespace> is not 
-correct.
-
-Returns a reference to hash with path 
-(relative to the basepath) and type of pan templates, 
-and an arrayreference to the invalid pan templates.
+Same as Test::Quattor::Object C<gather_pan>, but with <relpath> set 
+to the instance 'basepath'. (With C<panpath> and C<pannamespace> as arguments)
 
 =cut
 
-sub gather_pan 
+sub gather_pan
 {
     my ($self, $panpath, $pannamespace) = @_;
-
-    # sanitize the namespace
-    $pannamespace =~ s/\/+/\//g;
-    $pannamespace =~ s/\/$//;
-    
-    my (%pans, @invalid_pans);
-    
-    my $relpath = $self->{basepath};
-
-    my $namespacereg = qr{^(declaration|unique|object|structure)\stemplate\s$pannamespace/(\S+);$};
-    $self->verbose("Namespace regex pattern $namespacereg");
-    
-    my $wanted = sub {
-        my $name = $File::Find::name;
-        $name =~ s/^$relpath\/+//;
-
-        # relative to namespace
-        my $panrel = dirname($File::Find::name);
-        $panrel =~ s/^$panpath\/*//;
-        $panrel .= '/' if $panrel; # add trailing / here
-
-        if (-T && m/(.*)\.(pan)$/) {
-            my $tplname = basename($1);
-            
-            my $expectedname = "$panrel$tplname";
-
-            # must match template namespace
-            open (TPL, $_);
-            my $type;
-            while (my $line = <TPL>) {
-                chomp($line); # no newline in regexp
-                if ($line =~ m/$namespacereg/) {
-                    if ($2 eq $expectedname) {
-                        $self->verbose("Found matching template $2 type $1");
-                        $type = $1 ;
-                    } else {
-                        $self->verbose("Found mismatch template $2 type $1 with expected name $expectedname");
-                    }
-                }
-            }
-            close(TPL);
-            if ($type) {
-                $pans{$name} = $type;                
-            } else {
-                push(@invalid_pans, $name);
-            };
-        }
-    };
-
-    find($wanted, $panpath);
-
-    return \%pans, \@invalid_pans;
+    return $self->SUPER::gather_pan($self->{basepath}, $panpath, $pannamespace);    
 }
 
 =pod
