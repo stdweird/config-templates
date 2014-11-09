@@ -11,7 +11,23 @@ package Test::Quattor::Object;
 our @ISA;
 use Test::More;
 
+sub new {
+    my $that = shift;
+    my $proto = ref($that) || $that;
+    my $self = { @_ };
 
+    bless($self, $proto);
+
+    $self->_initialize();
+    
+    return $self;
+}
+
+sub _initialize
+{
+    # nothing to do here
+}
+    
 # info-type logger, calls diag
 sub info 
 {

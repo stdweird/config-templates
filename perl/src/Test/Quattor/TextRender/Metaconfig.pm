@@ -75,6 +75,8 @@ sub _initialize {
     $self->{panpath} = "$self->{ttpath}/pan";
     $self->{pannamespace} = "metaconfig/$self->{service}";
 
+    $self->SUPER::_initialize();
+
 }
 
 

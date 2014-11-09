@@ -87,17 +87,16 @@ Array reference of invalid pan templates to pass the C<test_gather_pan> test met
 =cut
 
 
-sub new {
-    my $that = shift;
-    my $proto = ref($that) || $that;
-    my $self = { @_ };
+sub _initialize
+{
+    my ($self) = @_;
+    $self->_sanitize();
+}
 
-    bless($self, $proto);
-
-    $self->_initialize();
-    
-    # sanity checks
-
+# sanity checks, validates some internals, return nothing
+sub _sanitize
+{
+    my ($self) = @_;
     $self->{basepath} = abs_path($self->{basepath});
     ok(-d $self->{basepath}, "basepath $self->{basepath} exists");
 
@@ -124,21 +123,6 @@ sub new {
     }
 
     ok($self->{pannamespace}, "Using init pannamespace $self->{pannamespace}");
-    
-    return $self;
-}
-
-=pod 
-
-=head2 _initialize
-
-Process more arguments 
-
-=cut
-
-sub _initialize
-{
-    # nothing to do here for Test::Quattor::TextRender
 }
 
 =pod 
@@ -346,5 +330,13 @@ sub test_gather_pan
 #   run them through CAF::TextRender, initialised like metaconfig?
 #   parse all tests
 
+# Parse/validate the tests
+#  return instances for each subtest
+
+# Foreach test
+#   search object templates
+#   compile them
+#   Gather all subtest instances
+#   Run over all subtests
 
 1;
