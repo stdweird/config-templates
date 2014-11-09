@@ -34,7 +34,7 @@ is(scalar @$tts, 2, "Found 2 TT files for direct ttpath");
 is_deeply($tts, ['metaconfig/testservice/1.0/main.tt', 'metaconfig/testservice/1.0/extra.tt'], 
           "Found TT files with location relative to basepath for direct ttpath");
 
-is(scalar @$itts, 2, "Found 2 invalid TT files for direct ttpath");
+is(scalar @$itts, 3, "Found 2 invalid TT files for direct ttpath");
 
 
 done_testing();

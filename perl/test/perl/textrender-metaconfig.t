@@ -25,10 +25,13 @@ isa_ok($st, "Test::Quattor::TextRender::Metaconfig",
        "Returns Test::Quattor::TextRender::Metaconfig instance for service");
 
 # don't do this in real tests unless you have a very good reason.
-$st->{expect}->{invalidtt} = ['testservice/1.0/tests/profiles/notarealtt.tt', 
+$st->{expect}->{invalidtt} = [
+    'testservice/1.0/failed_syntax.tt',
+    'testservice/1.0/tests/profiles/notarealtt.tt', 
     'testservice/pan/notarealtt.tt',
     ];
-$st->{expect}->{invalidpan} = ['testservice/pan/invalid_namespace.pan', 
+$st->{expect}->{invalidpan} = [
+    'testservice/pan/invalid_namespace.pan', 
     'testservice/pan/invalid_name.pan', 
     'testservice/pan/invalid_type.pan',
     ];

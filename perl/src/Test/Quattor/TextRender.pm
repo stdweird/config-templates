@@ -13,6 +13,8 @@ use File::Find;
 use Cwd 'abs_path';
 use Test::More;
 
+use Template::Parser;
+
 use base qw(Test::Quattor::Object);
 
 
@@ -146,7 +148,8 @@ sub _initialize
 Walk the C<ttpath> and gather all TT files
 A TT file is a text file with an C<.tt> extension; 
 they are considered 'invalid' when they are 
-in a 'test' or 'pan' directory.
+in a 'test' or 'pan' directory or 
+when they fail syntax validation.
 
 Returns an arrayreference with path 
 (relative to the basepath) of TT and invalid TT files.
@@ -167,8 +170,15 @@ sub gather_tt
         $name =~ s/^$relpath\/+//;
         if (-T && m/\.(tt)$/) {
             if ($name !~ m/(^|\/)(pan|tests)\//) {
-                # TODO add syntax check
-                push(@tts, $name);    
+                my $tp=Template::Parser->new({});
+                open TT, $_;
+                if($tp->parse(join( "", <TT>))) {
+                    push(@tts, $name);
+                } else {
+                    $self->verbose("failed syntax validation TT $name with ".$tp->error());
+                    push(@invalid_tts, $name);
+                }
+                close TT;
             } else {
                 push(@invalid_tts, $name);
             }
