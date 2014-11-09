@@ -67,9 +67,13 @@ sub _initialize {
         $self->{basepath} = getcwd()."/../metaconfig";
     }
 
-    # derive ttpath from service
     ok($self->{service}, "service $self->{service} defined for ttpath");
+
+    # derive ttpath from service
     $self->{ttpath} = "$self->{basepath}/$self->{service}";
+
+    $self->{panpath} = "$self->{ttpath}/pan";
+    $self->{pannamespace} = "metaconfig/$self->{service}";
 
 }
 
@@ -87,7 +91,8 @@ sub test
     my ($self) = @_;
     
     $self->test_gather_tt();
-
+    $self->test_gather_pan();
+    
 }
 
 1;

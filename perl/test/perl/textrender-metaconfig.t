@@ -24,10 +24,16 @@ my $st = Test::Quattor::TextRender::Metaconfig->new(
 isa_ok($st, "Test::Quattor::TextRender::Metaconfig", 
        "Returns Test::Quattor::TextRender::Metaconfig instance for service");
 
-# don't do this in real tests unless you have a vert good reason.
-$st->{expect}->{misplacedtt} = ['testservice/1.0/tests/profiles/notarealtt.tt', 
-    'testservice/pan/notarealtt.tt'];
+# don't do this in real tests unless you have a very good reason.
+$st->{expect}->{invalidtt} = ['testservice/1.0/tests/profiles/notarealtt.tt', 
+    'testservice/pan/notarealtt.tt',
+    ];
+$st->{expect}->{invalidpan} = ['testservice/pan/invalid_namespace.pan', 
+    'testservice/pan/invalid_name.pan', 
+    'testservice/pan/invalid_type.pan',
+    ];
 
+# the actual method to test
 $st->test();
 
 done_testing();
