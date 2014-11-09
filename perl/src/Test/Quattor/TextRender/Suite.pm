@@ -92,7 +92,7 @@ sub _initialize
 
 =pod
 
-=head2 gather_regexps
+=head2 gather_regexp
 
 Find all regexptests. Files/directories that start with a '.' are ignored.
 
@@ -100,7 +100,7 @@ Returns hash ref with name as key and array ref of the regexptests paths.
 
 =cut
 
-sub gather_regexps
+sub gather_regexp
 {
     my ($self) = @_;
     
@@ -109,7 +109,7 @@ sub gather_regexps
 
     opendir(DIR, $self->{regexpspath});
 
-    foreach my $name (grep { ! m/^\./ } readdir(DIR)) {
+    foreach my $name (grep { ! m/^\./ } sort readdir(DIR)) {
         my $abs = "$self->{regexpspath}/$name";
         if (-f $abs) {
             $self->verbose("Found regexps file $name (abs $abs)");
@@ -117,7 +117,7 @@ sub gather_regexps
         } elsif (-d $abs) {
             opendir(my $dh, $abs);
             # only files
-            my @files = map { "$name/$_" } grep { ! m/^\./ && -T "$abs/$_" } readdir($dh);
+            my @files = map { "$name/$_" } grep { ! m/^\./ && -T "$abs/$_" } sort readdir($dh);
             closedir $dh;
             $self->verbose("Found regexps directory $name (abs $abs) with files ".join(", ", @files));
             $regexps{$name} = \@files;
@@ -129,6 +129,58 @@ sub gather_regexps
     closedir(DIR);
    
     return \%regexps;
+}
+
+=pod
+
+=head2 gather_profile
+
+Create a hash reference of all object templates in the 'profilespath'
+with name key and filepath as value.
+
+=cut
+
+sub gather_profile
+{
+    my ($self) = @_;
+    
+    # empty namespace
+    my ($pans, $ipans) = $self->gather_pan($self->{profilespath}, $self->{profilespath}, '');
+    
+    is(scalar @$ipans, 0, 'No invalid pan templates');
+
+    my %objs;
+    while (my ($pan, $type) = each %$pans) {
+        my $name = basename($pan);
+        $name =~ s/\.pan$//;
+        $objs{$name} = $pan if ($type eq 'object');
+    }
+    
+    return \%objs;
+}
+
+=pod
+
+=head2 test
+
+Run all tests to validate the suite.
+
+=cut
+
+sub test
+{
+
+    my ($self) = @_;
+    
+    my $regexps = $self->gather_regexp();
+    ok($regexps, "Found regexps");
+
+    my $profiles = $self->gather_profile();    
+    ok($profiles, "Found profiles");
+
+    is_deeply([sort keys %$regexps], [sort keys %$profiles], 
+                "All regexps have matching profile");
+
 }
 
 1;

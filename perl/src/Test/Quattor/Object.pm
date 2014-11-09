@@ -125,10 +125,12 @@ sub gather_pan
     # sanitize the namespace
     $pannamespace =~ s/\/+/\//g;
     $pannamespace =~ s/\/$//;
+    # add trailing / to pannamespace if not-empty
+    $pannamespace .= '/' if $pannamespace;
     
     my (%pans, @invalid_pans);
     
-    my $namespacereg = qr{^(declaration|unique|object|structure)\stemplate\s$pannamespace/(\S+);$};
+    my $namespacereg = qr{^(declaration|unique|object|structure)\stemplate\s$pannamespace(\S+);$};
     $self->verbose("Namespace regex pattern $namespacereg");
     
     my $wanted = sub {
