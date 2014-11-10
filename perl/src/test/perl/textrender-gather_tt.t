@@ -18,7 +18,7 @@ Using direct TT path
 =cut
 
 my $dt = Test::Quattor::TextRender->new(
-    basepath => getcwd()."/../resources",
+    basepath => getcwd()."/src/test/resources",
     ttpath => 'metaconfig/testservice',
     panpath => 'metaconfig/testservice/pan',
     pannamespace => 'metaconfig/testservice',

@@ -18,7 +18,7 @@ my $st = Test::Quattor::TextRender::Metaconfig->new(
     service => 'testservice',
     version => '1.0',
     # exception here to set the basepath. Default should be ok for actual usage
-    basepath => getcwd()."/../resources/metaconfig",
+    basepath => getcwd()."/src/test/resources/metaconfig",
     );
 
 isa_ok($st, "Test::Quattor::TextRender::Metaconfig", 

@@ -14,7 +14,7 @@ Test the TextRender suite unittest.
 =cut
 
 my $st = Test::Quattor::TextRender::Suite->new(
-    testspath => getcwd()."/../resources/metaconfig/testservice/1.0/tests",
+    testspath => getcwd()."/src/test/resources/metaconfig/testservice/1.0/tests",
     );
 
 isa_ok($st, "Test::Quattor::TextRender::Suite", 

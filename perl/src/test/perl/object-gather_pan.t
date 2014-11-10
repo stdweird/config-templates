@@ -18,8 +18,8 @@ my $dt = Test::Quattor::Object->new();
 isa_ok($dt, "Test::Quattor::Object", "Returns Test::Quattor::Object instance");
 
 # These are the textrender gather_pan tests.
-
-my $basepath = abs_path(getcwd()."/../resources");
+my $basepath = abs_path(getcwd()."/src/test/resources");
+ok(-d $basepath, "basepath $basepath is a directory");
 my $panpath = "$basepath/metaconfig/testservice/pan";
 my $pannamespace = "metaconfig/testservice";
 
