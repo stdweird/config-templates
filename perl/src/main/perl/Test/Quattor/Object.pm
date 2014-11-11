@@ -109,8 +109,9 @@ A pan template is a text file with an C<.pan> extension;
 they are considered 'invalid' when the C<pannamespace> is not 
 correct.
 
-Returns a reference to hash with path 
-(relative to C<relpath>) and type of pan templates, 
+Returns a reference to hash with key path 
+(relative to C<relpath>) and value hashreference
+with 'type' of pan templates and 'expected' relative filepath;
 and an arrayreference to the invalid pan templates.
 
 =cut
@@ -149,21 +150,21 @@ sub gather_pan
 
             # must match template namespace
             open (TPL, $_);
-            my $type;
+            my $value = {};
             while (my $line = <TPL>) {
                 chomp($line); # no newline in regexp
                 if ($line =~ m/$namespacereg/) {
                     if ($2 eq $expectedname) {
                         $self->verbose("Found matching template $2 type $1");
-                        $type = $1 ;
+                        $value = {type => $1, expected => "$pannamespace$expectedname.pan"};
                     } else {
                         $self->verbose("Found mismatch template $2 type $1 with expected name $expectedname");
                     }
                 }
             }
             close(TPL);
-            if ($type) {
-                $pans{$name} = $type;                
+            if ($value->{type}) {
+                $pans{$name} = $value;                
             } else {
                 $self->verbose("Found invalid template $name (expectedname $expectedname)");
                 push(@invalid_pans, $name);

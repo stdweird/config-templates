@@ -14,6 +14,9 @@ use Cwd qw(abs_path);
 use File::Basename;
 use File::Find;
 
+use Test::Quattor::ProfileCache qw(prepare_profile_cache);
+use Test::Quattor::Panc qw(set_panc_options);
+
 use base qw(Test::Quattor::Object);
 
 =pod
@@ -150,13 +153,36 @@ sub gather_profile
     is(scalar @$ipans, 0, 'No invalid pan templates');
 
     my %objs;
-    while (my ($pan, $type) = each %$pans) {
+    while (my ($pan, $value) = each %$pans) {
         my $name = basename($pan);
         $name =~ s/\.pan$//;
-        $objs{$name} = $pan if ($type eq 'object');
+        $objs{$name} = $pan if ($value->{type} eq 'object');
     }
     
     return \%objs;
+}
+
+=pod
+
+=head2 one_test
+
+Run one test C<name>: i.e. run all regexptests (arrayref C<regexps>)
+ for a single test profile C<profile>.
+
+=cut
+
+sub one_test
+{
+    my ($self, $name, $profile, $regexps) = @_;
+    
+    # Build the customized resources directory
+    #   Add the pan files in correct namespace
+    #   Insert customresources in the includedirs for panc
+    #   Insert template-library-core in the includedirs for panc
+    
+    #   Compile, setup CCM cache and get the configuration instance
+    my $cfg = prepare_profile_cache($profile);
+        
 }
 
 =pod
@@ -180,6 +206,10 @@ sub test
 
     is_deeply([sort keys %$regexps], [sort keys %$profiles], 
                 "All regexps have matching profile");
+
+    foreach my $profile (keys %$regexps) {
+        
+    }
 
 }
 

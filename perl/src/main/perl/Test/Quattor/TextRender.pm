@@ -9,9 +9,13 @@ use warnings;
 package Test::Quattor::TextRender;
 
 use File::Basename;
+use File::Copy;
 use File::Find;
 use Cwd 'abs_path';
 use Test::More;
+
+use Carp qw(croak);
+use File::Path qw(mkpath);
 
 use Template::Parser;
 
@@ -90,6 +94,10 @@ Array reference of invalid pan templates to pass the C<test_gather_pan> test met
 sub _initialize
 {
     my ($self) = @_;
+    
+    # support caching
+    $self->{cache} = {};
+    
     $self->_sanitize();
 }
 
@@ -143,7 +151,11 @@ Returns an arrayreference with path
 sub gather_tt 
 {
     my ($self) = @_;
+
+    my $cache = $self->{cache};
     
+    return $cache->{tts}, $cache->{invalid_tts} if $cache->{tt};
+        
     my @tts;
     my @invalid_tts;
     
@@ -171,7 +183,10 @@ sub gather_tt
 
     find($wanted, $self->{ttpath});
 
-    return \@tts, \@invalid_tts;
+    $cache->{tts} = \@tts;
+    $cache->{invalid_tts} = \@invalid_tts;
+
+    return $cache->{tts}, $cache->{invalid_tts};
 }
 
 =pod
@@ -213,7 +228,57 @@ to the instance 'basepath'. (With C<panpath> and C<pannamespace> as arguments)
 sub gather_pan
 {
     my ($self, $panpath, $pannamespace) = @_;
-    return $self->SUPER::gather_pan($self->{basepath}, $panpath, $pannamespace);    
+    
+    my $cache = $self->{cache};
+    
+    return $cache->{pans}, $cache->{invalid_pans} if $cache->{pans};
+
+    my ($pans, $invalid_pans) = $self->SUPER::gather_pan($self->{basepath}, $panpath, $pannamespace);
+
+    $cache->{pans} = $pans;
+    $cache->{invalid_pans} = $invalid_pans;
+
+    return $cache->{pans}, $cache->{invalid_pans};
+}
+
+=pod
+
+=head2 make_namespace
+
+Create a copy of the gathered pan files from C<panpath> in the correct C<pannamespace>.
+Directory structure is build up starting from C<destination>.
+
+Returns a arrayreference with the copy locations.
+
+=cut
+
+sub make_namespace
+{
+    my ($self, $panpath, $pannamespace, $destination) = @_;
+    
+    my ($pans, $ipans) = $self->gather_pan($panpath, $pannamespace);
+
+    if (! -d $destination) {
+        mkpath($destination) 
+            or croak "make_namespace Unable to create destination directory $destination $!";
+    }
+
+    my @copies;
+    while (my ($pan, $value) = each %$pans) {
+        # pan is relative wrt basepath; copy it to $destination/
+        my $dest = "$destination/$value->{expected}";
+        my $destdir = dirname($dest);
+        if (! -d $destdir) {
+            mkpath($destdir) 
+                or croak "make_namespace Unable to create directory $destdir $!";
+        }
+        
+        copy("$self->{basepath}/$pan",$dest) or die "make_namespace: Copy failed: $!";
+        push(@copies, $dest);
+    }
+    
+    return \@copies;
+    
 }
 
 =pod
@@ -251,11 +316,11 @@ sub test_gather_pan
     # there must be one declaration template called schema.pan in the panpath
     my $schema = "$panpath/schema.pan";
     $schema =~ s/^$self->{basepath}\/+//;
-    is($pans->{$schema}, "declaration", "Found schema $schema");
+    is($pans->{$schema}->{type}, "declaration", "Found schema $schema");
 
     # there can be no object templates
-    while (my ($pan, $type) = each %$pans) {
-        $self->notok("No object template $pan found.") if ($type eq 'object');
+    while (my ($pan, $value) = each %$pans) {
+        $self->notok("No object template $pan found.") if ($value->{type} eq 'object');
     }
 
 }
