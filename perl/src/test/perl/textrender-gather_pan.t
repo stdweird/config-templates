@@ -34,8 +34,8 @@ is_deeply($pans, {'metaconfig/testservice/pan/schema.pan' => { type => 'declarat
 
 is(scalar @$ipans, 3, "Found 3 invalid pan templates for panpath");
 
-my $copies = $dt->make_namespace($dt->{panpath}, $dt->{pannamespace}, "target/test/newnamespace");
-is(scalar @$copies, 3, "All files copied");
+my $copies = $dt->make_namespace($dt->{panpath}, $dt->{pannamespace});
+is(scalar @$copies, scalar keys %$pans, "All files copied");
 
 
 done_testing();

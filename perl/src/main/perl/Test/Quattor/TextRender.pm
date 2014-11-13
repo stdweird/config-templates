@@ -11,7 +11,8 @@ package Test::Quattor::TextRender;
 use File::Basename;
 use File::Copy;
 use File::Find;
-use Cwd 'abs_path';
+use File::Temp qw(tempdir);
+use Cwd qw(abs_path getcwd);
 use Test::More;
 
 use Carp qw(croak);
@@ -21,6 +22,9 @@ use Template::Parser;
 
 use base qw(Test::Quattor::Object);
 
+use Readonly;
+
+Readonly my $DEFAULT_NAMESPACE_DIRECTORY => "target/test/namespace";
 
 =pod
 
@@ -57,12 +61,20 @@ If the path is not absolute, search from basepath.
 
 =item panpath
 
-Path to the (mandatory) pan files.  
+Path to the (mandatory) pan templates.  
 If the path is not absolute, search from basepath.  
 
 =item pannamespace
 
-Namespace for the (mandatory) pan files.  
+Namespace for the (mandatory) pan templates.  
+
+=item namespacepath
+
+Destination directory to create a copy of the pan templates
+in correct namespaced directory. Relative paths are assumed 
+relative to the current working directory.
+
+If no value is set, a random directory will be used.
 
 =item expect
 
@@ -105,6 +117,7 @@ sub _initialize
 sub _sanitize
 {
     my ($self) = @_;
+
     $self->{basepath} = abs_path($self->{basepath});
     ok(-d $self->{basepath}, "basepath $self->{basepath} exists");
 
@@ -131,6 +144,25 @@ sub _sanitize
     }
 
     ok($self->{pannamespace}, "Using init pannamespace $self->{pannamespace}");
+
+    my $currentdir = getcwd();
+    if($self->{namespacepath}) {
+        if ($self->{namespacepath} !~ m/^\//) {
+            $self->verbose("Relative namespacepath $self->{namespacepath} found");
+            $self->{namespacepath} = "$currentdir/$self->{namespacepath}";
+        }
+        $self->{namespacepath} = abs_path($self->{namespacepath});
+    } else {
+        my $dest = "$currentdir/$DEFAULT_NAMESPACE_DIRECTORY";
+        if (! -d $dest) {
+            mkpath($dest) 
+                or croak "Init Unable to create parent namespacepath directory $dest $!";
+        }
+
+        $self->{namespacepath} = tempdir(DIR => $dest );  
+    }
+    ok(-d $self->{namespacepath}, "Init namespacepath $self->{namespacepath} exists");
+    
 }
 
 =pod 
@@ -246,7 +278,7 @@ sub gather_pan
 =head2 make_namespace
 
 Create a copy of the gathered pan files from C<panpath> in the correct C<pannamespace>.
-Directory structure is build up starting from C<destination>.
+Directory structure is build up starting from the instance C<namespacepath> value.
 
 Returns a arrayreference with the copy locations.
 
@@ -254,19 +286,14 @@ Returns a arrayreference with the copy locations.
 
 sub make_namespace
 {
-    my ($self, $panpath, $pannamespace, $destination) = @_;
+    my ($self, $panpath, $pannamespace) = @_;
     
     my ($pans, $ipans) = $self->gather_pan($panpath, $pannamespace);
-
-    if (! -d $destination) {
-        mkpath($destination) 
-            or croak "make_namespace Unable to create destination directory $destination $!";
-    }
 
     my @copies;
     while (my ($pan, $value) = each %$pans) {
         # pan is relative wrt basepath; copy it to $destination/
-        my $dest = "$destination/$value->{expected}";
+        my $dest = "$self->{namespacepath}/$value->{expected}";
         my $destdir = dirname($dest);
         if (! -d $destdir) {
             mkpath($destdir) 
@@ -323,6 +350,9 @@ sub test_gather_pan
         $self->notok("No object template $pan found.") if ($value->{type} eq 'object');
     }
 
+    my $copies = $self->make_namespace($self->{panpath}, $self->{pannamespace});
+    is(scalar @$copies, scalar keys %$pans, "All files copied to $self->{namespacepath}");
+    
 }
 
 
@@ -331,7 +361,7 @@ sub test_gather_pan
 #   gather object templates
 #   check for matching directory and or test file
 #   compile the test objects
-#   run them through CAF::TextRender, initialised like metaconfig?
+#   run them through CAF::TextRender, initialized like metaconfig?
 #   parse all tests
 
 # Parse/validate the tests

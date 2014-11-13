@@ -95,6 +95,8 @@ sub test
     $self->test_gather_tt();
     $self->test_gather_pan();
     
+    # Set panc include dirs
+    
 }
 
 1;

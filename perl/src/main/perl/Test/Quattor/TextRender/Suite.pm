@@ -14,8 +14,10 @@ use Cwd qw(abs_path);
 use File::Basename;
 use File::Find;
 
-use Test::Quattor::ProfileCache qw(prepare_profile_cache);
-use Test::Quattor::Panc qw(set_panc_options);
+use Test::Quattor::ProfileCache qw(prepare_profile_cache set_profile_cache_options);
+use Test::Quattor::Panc qw(set_panc_includepath get_panc_includepath);
+
+use Test::Quattor::TextRender::RegexpTest;
 
 use base qw(Test::Quattor::Object);
 
@@ -61,6 +63,9 @@ Path to the suite object templates (C<testspath>/profiles is default when not sp
 =back
 
 =cut
+
+# TODO rename all references here and in actual directories to resources for uniform naming
+#   This is a blocker for merging as it fixes the directory layout
 
 sub _initialize
 {
@@ -166,22 +171,23 @@ sub gather_profile
 
 =head2 one_test
 
-Run one test C<name>: i.e. run all regexptests (arrayref C<regexps>)
- for a single test profile C<profile>.
+Run all regexptest C<$regexps> for a single test profile C<profile> with name C<name>.
 
 =cut
 
-sub one_test
+sub regexptest
 {
     my ($self, $name, $profile, $regexps) = @_;
     
-    # Build the customized resources directory
-    #   Add the pan files in correct namespace
-    #   Insert customresources in the includedirs for panc
-    #   Insert template-library-core in the includedirs for panc
-    
-    #   Compile, setup CCM cache and get the configuration instance
+    # Compile, setup CCM cache and get the configuration instance
     my $cfg = prepare_profile_cache($profile);
+
+    foreach my $regexp (@$regexps) {
+        my $regexptest = Test::Quattor::TextRender::RegexpTest->new(
+            regexp => $regexp,
+            config => $cfg,
+            )->test();
+    }
         
 }
 
@@ -207,8 +213,14 @@ sub test
     is_deeply([sort keys %$regexps], [sort keys %$profiles], 
                 "All regexps have matching profile");
 
-    foreach my $profile (keys %$regexps) {
-        
+    my $incdirs = get_panc_includepath();
+    push(@$incdirs, $self->{profilespath});
+    set_panc_includepath(@$incdirs);
+
+    set_profile_cache_options(resources => $self->{profilespath});
+    
+    foreach my $name (keys %$regexps) {
+        $self->regexptest($name, "$self->{profilespath}/$profiles->{$name}", $regexps->{$name});        
     }
 
 }
