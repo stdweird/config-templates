@@ -184,7 +184,7 @@ sub regexptest
 
     foreach my $regexp (@$regexps) {
         my $regexptest = Test::Quattor::TextRender::RegexpTest->new(
-            regexp => $regexp,
+            regexp => "$self->{regexpspath}/$regexp",
             config => $cfg,
             )->test();
     }

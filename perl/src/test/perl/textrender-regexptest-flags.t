@@ -27,6 +27,7 @@ Readonly::Hash my %FLAGS_NOVALUE_HASH => {
     quote        => 1,
     extended => 1,
     singleline => 1,
+    renderpath => '/metaconfig', # added by parser as default
 };
 
 Readonly my $FLAGS_VALUE_0 => <<'EOF';
@@ -47,6 +48,7 @@ Readonly::Hash my %FLAGS_VALUE_0_HASH => {
     quote        => 0,
     extended => 0,
     singleline => 0,
+    renderpath => '/metaconfig', # added by parser as default
 };
 
 Readonly my $FLAGS_VALUE_COMMENT => <<'EOF';
@@ -59,6 +61,7 @@ EOF
 Readonly::Hash my %FLAGS_VALUE_COMMENT_HASH => {
     multiline => 1,
     negate    => 1,
+    renderpath => '/metaconfig', # added by parser as default
 };
 
 Readonly my $FLAGS_ALIAS => <<'EOF';
@@ -71,6 +74,7 @@ Readonly::Hash my %FLAGS_ALIAS_HASH => {
     multiline     => 0,
     casesensitive => 0,
     ordered       => 0,
+    renderpath => '/metaconfig', # added by parser as default
 };
 
 =pod
@@ -86,7 +90,7 @@ my $tr = Test::Quattor::TextRender::RegexpTest->new();
 
 is_deeply(
     $tr->{flags},
-    { multiline => 1, ordered => 1 },
+    { multiline => 1, ordered => 1, casesensitive => 1,  }, # no renderpath here yet
     "Check default flags"
 );
 

@@ -41,12 +41,14 @@ my $regexps = $st->gather_regexp();
 is_deeply($regexps, {
             'config' => ['config/base', 'config/value'],
             'simple' => ['simple'],
+            'nopan' => ['nopan'],
             }, "Found regexps");
 
 my $objs = $st->gather_profile();
 is_deeply($objs, {
             'config'=>'config.pan', 
             'simple' => 'simple.pan',
+            'nopan' => 'nopan.pan',
             }, "Found profiles");
 
 # This is the test to run

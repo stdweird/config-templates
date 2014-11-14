@@ -19,9 +19,11 @@ use Regexp::Assemble;
 use Readonly;
 
 # Blocks are separated using this separator
-Readonly my $BLOCK_SEPARATOR => qr{^-{3}\s+$}m;
+Readonly my $BLOCK_SEPARATOR => qr{^-{3}$}m;
 # Number of expected blocks
 Readonly my $EXPECTED_BLOCKS => 3;
+
+Readonly my $DEFAULT_FLAG_RENDERPATH => '/metaconfig';
 
 Readonly::Hash my %DEFAULT_FLAGS => {
     multiline => 1,
@@ -107,17 +109,19 @@ sub parse
 
     $self->parse_flags($blocks[1]);    
 
+    $self->parse_tests($blocks[2]);    
+
 }
 
 # parse the description block, set the description attribute
 # blocktxt is the 1st block of the regexptest file
 sub parse_description
 {
-    my ($self, $blocktxt)  =@_;
+    my ($self, $blocktxt) = @_;
     
     my $description = $blocktxt;
     $description =~ s/\s+/ /g;
-    chomp($description);
+    $description =~ s/^\s+|\s+$//g;
     
     $self->{description} = $description;
     
@@ -141,12 +145,18 @@ sub parse_description
 #       other:
 #           all starting with // are renderpath
 #           all starting with / are metaconfigservice
+#   DEFAULT
+#       ordered=1
+#       multiline=1
+#       casesensitive=1
+#       renderpath=/metaconfig
 # blocktxt is the 2nd block of the regexptest file
 sub parse_flags
 {
     my ($self, $blocktxt)  =@_;
 
     foreach my $line (split("\n", $blocktxt)) {
+        next if ($line =~ m/^\s*$/);
         if ($line =~ m/^\s*#+\s*(.*)\s*$/) {
             $self->verbose("flag commented: $1");
         } elsif ($line =~ m/^\s*(multiline|casesensitive|ordered|negate|quote|singleline|extended)(?:\s*=\s*(0|1))?\s*$/) {
@@ -172,6 +182,7 @@ sub parse_flags
             $self->{flags}->{renderpath} = $METACONFIG_SERVICES.escape($ms);
         }
     }
+    $self->{flags}->{renderpath} = $DEFAULT_FLAG_RENDERPATH if (! $self->{flags}->{renderpath} );
 }
 
 # Create the re flags from the flags
@@ -219,6 +230,7 @@ sub parse_tests
     }
 
     foreach my $line (split("\n", $blocktxt)) {
+        next if ($line =~ m/^\s*$/);
         if ($line =~ m/^\s*#{3}+\s*(.*)\s*$/) {
             $self->verbose("regexptest test commented: $1");
             next;
