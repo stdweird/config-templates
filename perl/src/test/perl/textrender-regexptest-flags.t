@@ -14,28 +14,40 @@ multiline
 casesensitive
 ordered
 negate
+quote
+extended
+singleline
 EOF
 
 Readonly::Hash my %FLAGS_NOVALUE_HASH => {
-    multiline => 1,
+    multiline     => 1,
     casesensitive => 1,
-    ordered => 1,
-    negate => 1,
-};    
+    ordered       => 1,
+    negate        => 1,
+    quote        => 1,
+    extended => 1,
+    singleline => 1,
+};
 
 Readonly my $FLAGS_VALUE_0 => <<'EOF';
 multiline=0
 casesensitive=0
 ordered=0
 negate=0
+quote=0
+extended=0
+singleline=0
 EOF
 
 Readonly::Hash my %FLAGS_VALUE_0_HASH => {
-    multiline => 0,
+    multiline     => 0,
     casesensitive => 0,
-    ordered => 0,
-    negate => 0,
-};    
+    ordered       => 0,
+    negate        => 0,
+    quote        => 0,
+    extended => 0,
+    singleline => 0,
+};
 
 Readonly my $FLAGS_VALUE_COMMENT => <<'EOF';
 multiline=1
@@ -46,8 +58,8 @@ EOF
 
 Readonly::Hash my %FLAGS_VALUE_COMMENT_HASH => {
     multiline => 1,
-    negate => 1,
-};    
+    negate    => 1,
+};
 
 Readonly my $FLAGS_ALIAS => <<'EOF';
 nomultiline
@@ -56,10 +68,10 @@ unordered
 EOF
 
 Readonly::Hash my %FLAGS_ALIAS_HASH => {
-    multiline => 0,
+    multiline     => 0,
     casesensitive => 0,
-    ordered => 0,
-};    
+    ordered       => 0,
+};
 
 =pod
 
@@ -69,45 +81,56 @@ Test the TextRender RegexpTest unittest flags.
 
 =cut
 
-# Prepare the namespacepath 
+# Prepare the namespacepath
 my $tr = Test::Quattor::TextRender::RegexpTest->new();
 
-is_deeply($tr->{flags}, {multiline => 1, ordered => 1}, "Check default flags"); 
+is_deeply(
+    $tr->{flags},
+    { multiline => 1, ordered => 1 },
+    "Check default flags"
+);
 
-$tr->{flags}={};
+$tr->{flags} = {};
 $tr->parse_flags($FLAGS_NOVALUE);
-is_deeply($tr->{flags}, \%FLAGS_NOVALUE_HASH, "Check flags without values flags"); 
+is_deeply( $tr->{flags}, \%FLAGS_NOVALUE_HASH,
+    "Check flags without values flags" );
 
-$tr->{flags}={};
+$tr->{flags} = {};
 $tr->parse_flags($FLAGS_VALUE_0);
-is_deeply($tr->{flags}, \%FLAGS_VALUE_0_HASH, "Check flags with value 0"); 
+is_deeply( $tr->{flags}, \%FLAGS_VALUE_0_HASH, "Check flags with value 0" );
 
-$tr->{flags}={};
+$tr->{flags} = {};
 $tr->parse_flags($FLAGS_VALUE_COMMENT);
-is_deeply($tr->{flags}, \%FLAGS_VALUE_COMMENT_HASH, "Check flags with comments"); 
+is_deeply( $tr->{flags}, \%FLAGS_VALUE_COMMENT_HASH,
+    "Check flags with comments" );
 
-$tr->{flags}={};
+$tr->{flags} = {};
 $tr->parse_flags($FLAGS_ALIAS);
-is_deeply($tr->{flags}, \%FLAGS_ALIAS_HASH, "Check flags with alias"); 
+is_deeply( $tr->{flags}, \%FLAGS_ALIAS_HASH, "Check flags with alias" );
 
-
-$tr->{flags}={};
+$tr->{flags} = {};
 $tr->parse_flags('renderpath=/my/path');
-is($tr->{flags}->{renderpath}, '/my/path' , "Check flags renderpath"); 
+is( $tr->{flags}->{renderpath}, '/my/path', "Check flags renderpath" );
 
-$tr->{flags}={};
+$tr->{flags} = {};
 $tr->parse_flags('//my/path/alias');
-is($tr->{flags}->{renderpath}, '/my/path/alias' , "Check flags renderpath alias"); 
+is( $tr->{flags}->{renderpath},
+    '/my/path/alias', "Check flags renderpath alias" );
 
-$tr->{flags}={};
+$tr->{flags} = {};
 $tr->parse_flags('metaconfigservice=/my/path');
-is($tr->{flags}->{renderpath},  "/software/components/metaconfig/services/".escape('/my/path'), 
-      "Check flags metaconfigservice"); 
+is(
+    $tr->{flags}->{renderpath},
+    "/software/components/metaconfig/services/" . escape('/my/path'),
+    "Check flags metaconfigservice"
+);
 
-$tr->{flags}={};
+$tr->{flags} = {};
 $tr->parse_flags('/my/path/alias');
-is($tr->{flags}->{renderpath},  "/software/components/metaconfig/services/".escape('/my/path/alias'), 
-      "Check flags metaconfigservice alias"); 
-
+is(
+    $tr->{flags}->{renderpath},
+    "/software/components/metaconfig/services/" . escape('/my/path/alias'),
+    "Check flags metaconfigservice alias"
+);
 
 done_testing();

@@ -14,16 +14,27 @@ use base qw(Test::Quattor::Object);
 
 use EDG::WP4::CCM::Element qw(escape);
 
+use Regexp::Assemble;
+
 use Readonly;
 
 # Blocks are separated using this separator
-Readonly my $BLOCK_SEPARATOR => qr{^-{3}$}m;
+Readonly my $BLOCK_SEPARATOR => qr{^-{3}\s+$}m;
 # Number of expected blocks
 Readonly my $EXPECTED_BLOCKS => 3;
 
 Readonly::Hash my %DEFAULT_FLAGS => {
     multiline => 1,
+    casesensitive => 1,
     ordered => 1,
+};
+
+# convert these flag names in respective regexp flags
+Readonly::Hash my %FLAGS_REGEXP_MAP => {
+    multiline => 'm',
+    casesensitive => 'i', # actually this is caseinsensitive
+    extended => 'x',
+    singleline => 's',
 };
 
 
@@ -65,6 +76,7 @@ sub _initialize {
     my ($self) = @_;
 
     $self->{flags} = { %DEFAULT_FLAGS };
+    $self->{tests} = [];
     
     return $self;
 }
@@ -93,9 +105,12 @@ sub parse
 
     $self->parse_description($blocks[0]);    
 
+    $self->parse_flags($blocks[1]);    
+
 }
 
 # parse the description block, set the description attribute
+# blocktxt is the 1st block of the regexptest file
 sub parse_description
 {
     my ($self, $blocktxt)  =@_;
@@ -108,25 +123,33 @@ sub parse_description
     
 }
 
-# parse the flags
-#   (no)multiline / multiline=1/0
-#   case(in)sensistive / casesensitive = 0/1
-#   metaconfigservice=/path 
-#   renderpath=/some/path
+# parse the flags block
+#   regexp flags
+#       (no)multiline / multiline=1/0 
+#       singleline / singleline=1/0 (can coexist with multiline)
+#       extended / extended=1/0
+#       case(in)sensistive / casesensitive = 0/1
 #   (un)ordered / ordered=0/1 : ordered matches
-#   negate = 0/1: Negate all regexps (none of the regexps can match) (not applicable when COUNT is set for individual regexp)
-#   other:
-#       all starting with // are renderpath
-#       all starting with / are metaconfigservice
-
+#   negate / negate = 0/1: Negate all regexps, none of the regexps can match
+#       is an alias for COUNT 0 on every regtest (overwritten when COUNT is set for individual regexp)
+#   quote / quote = 0/1: exact match of test block
+#       multiline is logged and ignored
+#       ordered is meaningless (and silently ignored)
+#   location of module and contents settings:
+#       metaconfigservice=/some/path 
+#       renderpath=/some/path
+#       other:
+#           all starting with // are renderpath
+#           all starting with / are metaconfigservice
+# blocktxt is the 2nd block of the regexptest file
 sub parse_flags
 {
     my ($self, $blocktxt)  =@_;
 
     foreach my $line (split("\n", $blocktxt)) {
         if ($line =~ m/^\s*#+\s*(.*)\s*$/) {
-            note("flag commented: $1");
-        } elsif ($line =~ m/^\s*(multiline|casesensitive|ordered|negate)(?:\s*=\s*(0|1))?\s*$/) {
+            $self->verbose("flag commented: $1");
+        } elsif ($line =~ m/^\s*(multiline|casesensitive|ordered|negate|quote|singleline|extended)(?:\s*=\s*(0|1))?\s*$/) {
             $self->{flags}->{$1} = defined($2) ? $2 : 1;
         } elsif ($line =~ m/^\s*(?:no(?<s>multiline)(?<t>))|(?:(?<s>case)in(?<t>sensitive))|(?:un(?<s>ordered)(?<t>))\s*$/) {
             # yeah, not so pretty...
@@ -150,6 +173,81 @@ sub parse_flags
         }
     }
 }
+
+# Create the re flags from the flags
+# Ignores all flags passed as arguments
+# Returns string
+sub make_re_flags 
+{
+    my ($self, @ignore) = @_;
+
+    my @reflags;
+    while (my ($flag, $reflag) = each %FLAGS_REGEXP_MAP) {
+        my $val = $self->{flags}->{$flag};
+        next if (! defined($val));
+        next if (grep {$flag eq $_} @ignore);
+        $val = $val ? 0 : 1 if ($flag eq 'casesensitive');
+        push(@reflags, $reflag) if $val;
+    }    
+
+    return join("", sort @reflags);    
+}
+
+# parse the tests block
+# If quote flag set: 
+#   rendered text has to be exact match, incl EOF newline etc etc
+# Else parse the tests line by line, one regexp per line:
+#   starting with '\s*#{3} ' are comments
+#   ending with '\s#{3}' are interpreted as options
+#      COUNT \d+ : exact number of matches (use 0 to make sure a line doesn't match)
+# blocktxt is the 3rd block of the regexptest file
+sub parse_tests 
+{
+    my ($self, $blocktxt) = @_;
+  
+    if($self->{flags}->{quote}) {
+        # TODO why would we ignore this? we can use \A/\B instead of ^/$
+        $self->verbose("multiline set but ignored with quote flag") if $self->{flags}->{multiline};
+            
+        my $ra = Regexp::Assemble->new(flags => $self->make_re_flags('multiline'));
+        $ra->add("^$blocktxt\$");
+        my $test = { reg => $ra };
+        $test->{count} = 0 if $self->{flags}->{negate};
+        push(@{$self->{tests}}, $test);
+        # return here to avoid extra indentation 
+        return;
+    }
+
+    foreach my $line (split("\n", $blocktxt)) {
+        if ($line =~ m/^\s*#{3}+\s*(.*)\s*$/) {
+            $self->verbose("regexptest test commented: $1");
+            next;
+        } 
+
+        my $test = { reg => Regexp::Assemble->new(flags => $self->make_re_flags()) };
+
+        $test->{count} = 0 if $self->{flags}->{negate};
+        
+        # parse any special options
+        if ($line =~ m/^(.*)\s#{3}+\s(?:(?:COUNT\s(?<count>\d+)))\s*$/) {
+            if(exists($+{count})) {
+                $test->{count} = $+{count};
+            }
+            
+            # redefine line 
+            $line = $1;
+        }
+
+        # make regexp
+        $test->{reg}->add($line);        
+        
+        # add test
+        push(@{$self->{tests}}, $test);
+        
+    }
+
+}
+
 
 # run tests
 #   run the tests
@@ -176,7 +274,6 @@ sub test
     ok(-f $self->{regexp}, "Regexp file $self->{regexp} found.");
 
     isa_ok($self->{config}, "EDG::WP4::CCM::Configuration", "config EDG::WP4::CCM::Configuration instance");
-
 
     $self->parse;
 
