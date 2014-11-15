@@ -60,6 +60,10 @@ Path to the suite regexptests  (C<testspath>/regexps is default when not specifi
 
 Path to the suite object templates (C<testspath>/profiles is default when not specified).
 
+=item includepath
+
+Includepath to use for CAF::TextRender.
+
 =back
 
 =cut
@@ -70,7 +74,10 @@ Path to the suite object templates (C<testspath>/profiles is default when not sp
 sub _initialize
 {
     my ($self) = @_;
-    
+
+    $self->{includepath} = abs_path($self->{includepath});
+    ok(-d $self->{includepath}, "includepath $self->{includepath} exists");
+
     $self->{testspath} = abs_path($self->{testspath});
     ok(-d $self->{testspath}, "testspath $self->{testspath} exists");
 
@@ -186,6 +193,7 @@ sub regexptest
         my $regexptest = Test::Quattor::TextRender::RegexpTest->new(
             regexp => "$self->{regexpspath}/$regexp",
             config => $cfg,
+            includepath => $self->{includepath},
             )->test();
     }
         

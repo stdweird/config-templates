@@ -15,7 +15,7 @@ use base qw(Test::Quattor::Object);
 use EDG::WP4::CCM::Element qw(escape);
 
 use Regexp::Assemble;
-
+use CAF::TextRender;
 use Readonly;
 
 # Blocks are separated using this separator
@@ -69,6 +69,10 @@ The regexptest file.
 =item config
 
 The configuration instance to retreive the values from.
+
+=item includepath
+
+The includepath for CAF::TextRender.
 
 =back
 
@@ -255,11 +259,29 @@ sub parse_tests
         
         # add test
         push(@{$self->{tests}}, $test);
-        
     }
-
 }
 
+# Render the text using config and flags-renderpath
+# Store the CAF::TextRender instance and the get_text result in attributes
+sub render
+{
+    my ($self) = @_;
+    
+    my $srv = $self->{config}->getElement($self->{flags}->{renderpath})->getTree();
+
+    # TODO how to keep this in sync with what metaconfig does? esp the options
+    # TODO add log => $self; but then we need warn and debug in Test::Quattor::Object
+    $self->{trd} = CAF::TextRender->new(
+        $srv->{module},
+        $srv->{contents},
+        eol => 0,
+        includepath => $self->{includepath},
+        );
+
+    $self->{rendertext} = $self->{trd}->get_text;
+    
+}
 
 # run tests
 #   run the tests
@@ -290,6 +312,14 @@ sub test
     $self->parse;
 
     # render the text
+    my $rp = $self->{flags}->{renderpath};
+    ok($self->{config}->elementExists($rp), "Renderpath $rp found");
+    
+    $self->render;
+
+    # In case of failure, fail is in the ok message
+    ok(defined($self->{rendertext}), "No renderfailure (fail: ".($self->{trd}->{fail} || "").")");
+    
     # run the regexps over the text
     
 }

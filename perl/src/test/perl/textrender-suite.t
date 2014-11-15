@@ -30,8 +30,10 @@ set_panc_includepath($tr->{namespacepath}, abs_path($ENV{QUATTOR_TEST_TEMPLATE_L
 
 diag("Start actual Suite tests");
 
+my $base = getcwd()."/src/test/resources";
 my $st = Test::Quattor::TextRender::Suite->new(
-    testspath => getcwd()."/src/test/resources/metaconfig/testservice/1.0/tests",
+    includepath => $base,
+    testspath => "$base/metaconfig/testservice/1.0/tests",
     );
 
 isa_ok($st, "Test::Quattor::TextRender::Suite", 
