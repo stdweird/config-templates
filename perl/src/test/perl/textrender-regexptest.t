@@ -43,8 +43,8 @@ is_deeply($tr->{flags}, {
     }, "Flags found from block and defaults");
 
 is_deeply($tr->{tests}, [
-    {reg => qr{(?m:^default$)} },
-    {reg => qr{(?m:^EXTRA more$)} },
+    {reg => qr{(?m:^default_simple$)} },
+    {reg => qr{(?m:^EXTRA more_simple$)} },
     ], "Regexptests found");
 
 my $srv = $tr->{config}->getElement($tr->{flags}->{renderpath})->getTree();
@@ -65,6 +65,13 @@ is($tr->{trd}->{module}, $srv->{module}, "Correct module set");
 is($tr->{rendertext}, $EXPECTED_RENDERTEXT, "Text rendered correctly");
 
 # match
+$tr->match;
+
+is(scalar @{$tr->{tests}}, scalar @{$tr->{matches}}, "Match for each test");
+is_deeply($tr->{matches}, [
+    { before => [0], after => [14], count => 1},
+    { before => [15], after => [32], count => 1},
+    ], "Expected matches");
 
 
 done_testing();

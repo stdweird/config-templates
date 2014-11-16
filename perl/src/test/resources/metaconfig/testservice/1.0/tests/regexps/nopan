@@ -5,5 +5,5 @@ casesensitive
 ordered
 singleline=0
 ---
-^default$
-^EXTRA more$
+^default_simple$
+^EXTRA more_simple$

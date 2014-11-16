@@ -82,6 +82,7 @@ sub _initialize {
 
     $self->{flags} = { %DEFAULT_FLAGS };
     $self->{tests} = [];
+    $self->{matches} = [];
     
     return $self;
 }
@@ -90,7 +91,7 @@ sub _initialize {
 
 =head2 parse
 
-Parse the regexp file in 3 sections: description, flags and tests. 
+Parse the regexp file in 3 sections: description, flags and tests.
 
 Each section is converted in an instance attribute named 'description',
  'flags' and 'tests'.
@@ -99,20 +100,20 @@ Each section is converted in an instance attribute named 'description',
 
 sub parse
 {
-    my ($self) = @_;    
-    
+    my ($self) = @_;
+
     # cut textfile in 3 blocks
     open REG, $self->{regexp};
     my @blocks = split($BLOCK_SEPARATOR, join("", <REG>));
     close REG;
-    
+
     is(scalar @blocks, $EXPECTED_BLOCKS, "Expected number of blocks");
 
-    $self->parse_description($blocks[0]);    
+    $self->parse_description($blocks[0]);
 
-    $self->parse_flags($blocks[1]);    
+    $self->parse_flags($blocks[1]);
 
-    $self->parse_tests($blocks[2]);    
+    $self->parse_tests($blocks[2]);
 
 }
 
@@ -121,18 +122,18 @@ sub parse
 sub parse_description
 {
     my ($self, $blocktxt) = @_;
-    
+
     my $description = $blocktxt;
     $description =~ s/\s+/ /g;
     $description =~ s/^\s+|\s+$//g;
-    
+
     $self->{description} = $description;
-    
+
 }
 
 # parse the flags block
 #   regexp flags
-#       (no)multiline / multiline=1/0 
+#       (no)multiline / multiline=1/0
 #       singleline / singleline=1/0 (can coexist with multiline)
 #       extended / extended=1/0
 #       case(in)sensistive / casesensitive = 0/1
@@ -143,7 +144,7 @@ sub parse_description
 #       multiline is logged and ignored
 #       ordered is meaningless (and silently ignored)
 #   location of module and contents settings:
-#       metaconfigservice=/some/path 
+#       metaconfigservice=/some/path
 #       renderpath=/some/path
 #       other:
 #           all starting with // are renderpath
@@ -175,7 +176,7 @@ sub parse_flags
             $self->notok("Unallowed flag $line");
         }
     }
-    
+
     if(exists($self->{flags}->{metaconfigservice})) {
         # remove the metaconfigservice
         my $ms = delete $self->{flags}->{metaconfigservice};
@@ -191,7 +192,7 @@ sub parse_flags
 # Create the re flags from the flags
 # Ignores all flags passed as arguments
 # Returns string
-sub make_re_flags 
+sub make_re_flags
 {
     my ($self, @ignore) = @_;
 
@@ -202,23 +203,23 @@ sub make_re_flags
         next if (grep {$flag eq $_} @ignore);
         $val = $val ? 0 : 1 if ($flag eq 'casesensitive');
         push(@reflags, $reflag) if $val;
-    }    
+    }
 
-    return join("", sort @reflags);    
+    return join("", sort @reflags);
 }
 
 # parse the tests block
-# If quote flag set: 
+# If quote flag set:
 #   rendered text has to be exact match, incl EOF newline etc etc
 # Else parse the tests line by line, one regexp per line:
 #   starting with '\s*#{3} ' are comments
 #   ending with '\s#{3}' are interpreted as options
 #      COUNT \d+ : exact number of matches (use 0 to make sure a line doesn't match)
 # blocktxt is the 3rd block of the regexptest file
-sub parse_tests 
+sub parse_tests
 {
     my ($self, $blocktxt) = @_;
-  
+
     if($self->{flags}->{quote}) {
         # TODO why would we ignore this? we can use \A/\B instead of ^/$
         # TODO is quote a regexp or literal match (with eq operator)?
@@ -227,7 +228,7 @@ sub parse_tests
         my $test = { reg => qr{(?$flags:^$blocktxt$)} };
         $test->{count} = 0 if $self->{flags}->{negate};
         push(@{$self->{tests}}, $test);
-        # return here to avoid extra indentation 
+        # return here to avoid extra indentation
         return;
     }
 
@@ -236,26 +237,26 @@ sub parse_tests
         if ($line =~ m/^\s*#{3}+\s*(.*)\s*$/) {
             $self->verbose("regexptest test commented: $1");
             next;
-        } 
+        }
 
         my $flags = $self->make_re_flags();
         my $test = {};
 
         $test->{count} = 0 if $self->{flags}->{negate};
-        
+
         # parse any special options
         if ($line =~ m/^(.*)\s#{3}+\s(?:(?:COUNT\s(?<count>\d+)))\s*$/) {
             if(exists($+{count})) {
                 $test->{count} = $+{count};
             }
-            
-            # redefine line 
+
+            # redefine line
             $line = $1;
         }
 
         # make regexp
-        $test->{reg} = qr{(?$flags:$line)};        
-        
+        $test->{reg} = qr{(?$flags:$line)};
+
         # add test
         push(@{$self->{tests}}, $test);
     }
@@ -266,7 +267,7 @@ sub parse_tests
 sub render
 {
     my ($self) = @_;
-    
+
     my $srv = $self->{config}->getElement($self->{flags}->{renderpath})->getTree();
 
     # TODO how to keep this in sync with what metaconfig does? esp the options
@@ -279,16 +280,27 @@ sub render
         );
 
     $self->{rendertext} = $self->{trd}->get_text;
-    
+
 }
 
 # Match all tests against the rendertext attribute
+# Store matches begin and end position in matches attribute
+# for each match of each test; and the number of matches as count
 sub match
 {
     my ($self) = @_;
 
     foreach my $test (@{$self->{tests}}) {
-        
+        # always make all matches for the whole rendertext
+        my $remainder = $self->{rendertext};
+        my (@before, @after);
+        my $count = 0;
+        while ($remainder =~ /$test->{reg}/g) {
+            push(@before, $-[0]);
+            push(@after, $+[0]);
+            $count++;
+        }
+        push(@{$self->{matches}}, { before => \@before, after => \@after, count => $count });
     }
 }
 
@@ -298,12 +310,14 @@ sub match
 sub postprocess
 {
     my ($self) = @_;
-    
+
+    foreach my $test (@{$self->{tests}}) {
+    }
 }
 
 # run tests
 #   run the tests
-#   2 modes: 
+#   2 modes:
 #       unordered: regexps can be matched anywhere
 #       ordered: regexps can be matched in text following previous match
 #       impl: run everything unordered, keep track of match index
@@ -321,7 +335,7 @@ Perform the tests as defined in the flags and specified in the 'tests' section
 
 sub test
 {
-    my ($self) = @_;    
+    my ($self) = @_;
 
     ok(-f $self->{regexp}, "Regexp file $self->{regexp} found.");
 
@@ -332,12 +346,15 @@ sub test
     # render the text
     my $rp = $self->{flags}->{renderpath};
     ok($self->{config}->elementExists($rp), "Renderpath $rp found");
-    
+
     $self->render;
 
     # In case of failure, fail is in the ok message
     ok(defined($self->{rendertext}), "No renderfailure (fail: ".($self->{trd}->{fail} || "").")");
-    
+
     # run the regexps over the text
-    
+    $self->match;
+
+    is(scalar @{$self->{tests}}, scalar @{$self->{matches}}, "Match for each test");
+
 }
