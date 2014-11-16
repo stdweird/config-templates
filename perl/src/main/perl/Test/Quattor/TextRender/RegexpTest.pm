@@ -307,11 +307,24 @@ sub match
 # Postprocess the matched results
 #   verify count
 #   verify ordered
+# Does not return anything
 sub postprocess
 {
     my ($self) = @_;
 
-    foreach my $test (@{$self->{tests}}) {
+    # count ok?
+    my $nrtests = scalar @{$self->{tests}};
+    foreach my $idx (0..$nrtests-1) {
+        my $test = $self->{tests}->[$idx];
+        my $match = $self->{matches}->[$idx];
+        my $msg = "for test idx $idx (pattern $test->{reg})";
+
+        if (exists($test->{count})) {
+            is($test->{count}, $match->{count}, "Number of matches as expected $msg");
+        } else {
+            # there should be at least one match
+            ok($match->{count} > 0, "$match->{count} matches found $msg");
+        }
     }
 }
 
@@ -343,6 +356,8 @@ sub test
 
     $self->parse;
 
+    $self->info("BEGIN test for $self->{description}");
+
     # render the text
     my $rp = $self->{flags}->{renderpath};
     ok($self->{config}->elementExists($rp), "Renderpath $rp found");
@@ -356,5 +371,10 @@ sub test
     $self->match;
 
     is(scalar @{$self->{tests}}, scalar @{$self->{matches}}, "Match for each test");
+
+    # this runs a bunch of extra tests
+    $self->postprocess;
+
+    $self->info("END test for $self->{description}");
 
 }

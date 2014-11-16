@@ -73,5 +73,8 @@ is_deeply($tr->{matches}, [
     { before => [15], after => [32], count => 1},
     ], "Expected matches");
 
+# postprocess runs a bunch of tests
+$tr->postprocess;
+
 
 done_testing();

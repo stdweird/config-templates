@@ -2,5 +2,5 @@ Base test
 ---
 /test/file
 ---
-^default$
-^EXTRA more$
+default
+EXTRA more
