@@ -29,6 +29,7 @@ my $tr = Test::Quattor::TextRender::RegexpTest->new(
     includepath => $basepath, # metaconfig is default relpath
 );
 
+# parse
 $tr->parse();
 
 is($tr->{description}, "Nopan", "Description found from block");
@@ -52,6 +53,7 @@ is_deeply($srv, {
     contents => {extra => 'more_simple', data => 'default_simple'},
     }, "Correct service subtree of config found");
 
+# render
 $tr->render;
 isa_ok($tr->{trd}, "CAF::TextRender", "CAF::TextRender instance saved"); 
 
@@ -61,5 +63,8 @@ is($tr->{trd}->{module}, $srv->{module}, "Correct module set");
 
 
 is($tr->{rendertext}, $EXPECTED_RENDERTEXT, "Text rendered correctly");
+
+# match
+
 
 done_testing();

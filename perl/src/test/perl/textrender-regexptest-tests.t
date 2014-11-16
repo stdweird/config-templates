@@ -82,10 +82,7 @@ EOF
 
 $tr->parse_tests($DATA);
 is(scalar @{$tr->{tests}}, 1, "quote gives one test");
-is_deeply($tr->{tests}->[0], {reg => qr{^$DATA$}}, "quote interprets whole block as 1 test");
-
-# actually we pass Regexp::Assemble instances
-isa_ok($tr->{tests}->[0]->{reg}, "Regexp::Assemble", "Regexp::Assemble instance as reg");
+is_deeply($tr->{tests}->[0], {reg => qr{(?:^$DATA$)}}, "quote interprets whole block as 1 test");
 
 =pod
 
@@ -99,7 +96,7 @@ $tr->{flags} = {quote=>1, negate => 1};
 $tr->{tests} = [];
 $tr->parse_tests($DATA);
 is(scalar @{$tr->{tests}}, 1, "quote gives one test");
-is_deeply($tr->{tests}->[0], {reg => qr{^$DATA$}, count => 0}, 
+is_deeply($tr->{tests}->[0], {reg => qr{(?:^$DATA$)}, count => 0}, 
         "quote interprets whole block as 1 test, negate sets count to 0");
 
 
@@ -115,7 +112,7 @@ $tr->{flags} = {quote=>1, negate => 1, extended => 1};
 $tr->{tests} = [];
 $tr->parse_tests($DATA);
 is(scalar @{$tr->{tests}}, 1, "quote gives one test");
-# Regexp::Assemble creates blocks of regexps with their own flags, no qr{}x
+
 is_deeply($tr->{tests}->[0], {reg => qr{(?x:^$DATA$)}, count => 0}, 
         "quote interprets whole block as 1 test, negate sets count to 0, extended flag on");
 
@@ -131,13 +128,10 @@ $tr->{flags} = {};
 $tr->{tests} = [];
 $tr->parse_tests($DATA);
 is_deeply($tr->{tests}, [
-            {reg => qr{exact text}}, 
-            {reg => qr{2nd line}, count => 3}, # trailing whitespace is part of the ### separator!
-            {reg => qr{4th line }},
+            {reg => qr{(?:exact text)}}, 
+            {reg => qr{(?:2nd line)}, count => 3}, # trailing whitespace is part of the ### separator!
+            {reg => qr{(?:4th line )}},
             ], "data interpreted as 3 tests");
-
-# actually we pass Regexp::Assemble instances
-isa_ok($tr->{tests}->[0]->{reg}, "Regexp::Assemble", "Regexp::Assemble instance as reg");
 
 
 =pod
@@ -152,9 +146,9 @@ $tr->{flags} = {negate => 1};
 $tr->{tests} = [];
 $tr->parse_tests($DATA);
 is_deeply($tr->{tests}, [
-            {reg => qr{exact text}, count => 0}, 
-            {reg => qr{2nd line}, count => 3}, # COUNT overrides negate
-            {reg => qr{4th line }, count => 0},
+            {reg => qr{(?:exact text)}, count => 0}, 
+            {reg => qr{(?:2nd line)}, count => 3}, # COUNT overrides negate
+            {reg => qr{(?:4th line )}, count => 0},
             ], "data interpreted as 3 tests with negate");
 
 =pod

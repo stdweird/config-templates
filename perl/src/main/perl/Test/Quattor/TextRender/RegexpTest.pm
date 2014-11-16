@@ -14,7 +14,6 @@ use base qw(Test::Quattor::Object);
 
 use EDG::WP4::CCM::Element qw(escape);
 
-use Regexp::Assemble;
 use CAF::TextRender;
 use Readonly;
 
@@ -140,7 +139,7 @@ sub parse_description
 #   (un)ordered / ordered=0/1 : ordered matches
 #   negate / negate = 0/1: Negate all regexps, none of the regexps can match
 #       is an alias for COUNT 0 on every regtest (overwritten when COUNT is set for individual regexp)
-#   quote / quote = 0/1: exact match of test block
+#   quote / quote = 0/1: whole block is 1 regexp
 #       multiline is logged and ignored
 #       ordered is meaningless (and silently ignored)
 #   location of module and contents settings:
@@ -222,11 +221,10 @@ sub parse_tests
   
     if($self->{flags}->{quote}) {
         # TODO why would we ignore this? we can use \A/\B instead of ^/$
+        # TODO is quote a regexp or literal match (with eq operator)?
         $self->verbose("multiline set but ignored with quote flag") if $self->{flags}->{multiline};
-            
-        my $ra = Regexp::Assemble->new(flags => $self->make_re_flags('multiline'));
-        $ra->add("^$blocktxt\$");
-        my $test = { reg => $ra };
+        my $flags = $self->make_re_flags('multiline');
+        my $test = { reg => qr{(?$flags:^$blocktxt$)} };
         $test->{count} = 0 if $self->{flags}->{negate};
         push(@{$self->{tests}}, $test);
         # return here to avoid extra indentation 
@@ -240,7 +238,8 @@ sub parse_tests
             next;
         } 
 
-        my $test = { reg => Regexp::Assemble->new(flags => $self->make_re_flags()) };
+        my $flags = $self->make_re_flags();
+        my $test = {};
 
         $test->{count} = 0 if $self->{flags}->{negate};
         
@@ -255,7 +254,7 @@ sub parse_tests
         }
 
         # make regexp
-        $test->{reg}->add($line);        
+        $test->{reg} = qr{(?$flags:$line)};        
         
         # add test
         push(@{$self->{tests}}, $test);
@@ -280,6 +279,25 @@ sub render
         );
 
     $self->{rendertext} = $self->{trd}->get_text;
+    
+}
+
+# Match all tests against the rendertext attribute
+sub match
+{
+    my ($self) = @_;
+
+    foreach my $test (@{$self->{tests}}) {
+        
+    }
+}
+
+# Postprocess the matched results
+#   verify count
+#   verify ordered
+sub postprocess
+{
+    my ($self) = @_;
     
 }
 
