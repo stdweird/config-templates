@@ -215,6 +215,8 @@ sub make_re_flags
 #   starting with '\s*#{3} ' are comments
 #   ending with '\s#{3}' are interpreted as options
 #      COUNT \d+ : exact number of matches (use 0 to make sure a line doesn't match)
+#          global count, e.g. in ordered mode the count itself 
+#           is not number of matches since previous test match
 # blocktxt is the 3rd block of the regexptest file
 sub parse_tests
 {
@@ -280,6 +282,7 @@ sub render
         );
 
     $self->{rendertext} = $self->{trd}->get_text;
+    $self->verbose("Rendertext:\n$self->{rendertext}");
 
 }
 
@@ -312,18 +315,42 @@ sub postprocess
 {
     my ($self) = @_;
 
-    # count ok?
     my $nrtests = scalar @{$self->{tests}};
+    # the position of the end of previous match
+    my $lastpos = -1;
     foreach my $idx (0..$nrtests-1) {
         my $test = $self->{tests}->[$idx];
         my $match = $self->{matches}->[$idx];
         my $msg = "for test idx $idx (pattern $test->{reg})";
 
+        # Verify that the (global) count is ok.
         if (exists($test->{count})) {
-            is($test->{count}, $match->{count}, "Number of matches as expected $msg");
+            is($test->{count}, $match->{count}, "Number of matches as expected (test $test->{count} match $match->{count}) $msg");
         } else {
             # there should be at least one match
-            ok($match->{count} > 0, "$match->{count} matches found $msg");
+            ok($match->{count} > 0, "Found at least one match (total $match->{count} matches) $msg");
+        }
+        
+        # In ordered mode, we check that there is a match after the match of the previous test
+        #   This allows multiple matches (or even repeated tests).
+        if ($self->{flags}->{ordered}) {
+            my $orderok = 0; # order not ok by default
+            my ($before, $after) = (-1, -1);
+            foreach my $midx (0..$match->{count}-1) {
+                $before = $match->{before}->[$midx];
+                $after = $match->{before}->[$midx];
+                if ($before > $lastpos) {
+                    $orderok = 1;
+                    # non greedy, take the endpos of the first match 
+                    # that comes after the previous match
+                    last;
+                }
+            };
+
+            ok($orderok, "Order ok $msg (lastpos $lastpos before $before)");
+
+            # if current test fails the ordering, the lastpos is not updated
+            $lastpos = $after if $orderok;
         }
     }
 }
