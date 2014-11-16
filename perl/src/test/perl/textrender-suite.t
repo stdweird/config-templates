@@ -19,8 +19,9 @@ Test the TextRender suite unittest.
 =cut
 
 # Prepare the namespacepath 
+my $base = getcwd()."/src/test/resources";
 my $tr = Test::Quattor::TextRender->new(
-    basepath => getcwd()."/src/test/resources",
+    basepath => $base,
     ttpath => 'metaconfig/testservice',
     panpath => 'metaconfig/testservice/pan',
     pannamespace => 'metaconfig/testservice',
@@ -30,7 +31,6 @@ set_panc_includepath($tr->{namespacepath}, abs_path($ENV{QUATTOR_TEST_TEMPLATE_L
 
 diag("Start actual Suite tests");
 
-my $base = getcwd()."/src/test/resources";
 my $st = Test::Quattor::TextRender::Suite->new(
     includepath => $base,
     testspath => "$base/metaconfig/testservice/1.0/tests",

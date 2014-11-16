@@ -8,8 +8,14 @@ use warnings;
 
 package Test::Quattor::TextRender::Metaconfig;
 
+use File::Basename;
+
 use Test::More;
-use Cwd;
+use Test::Quattor::Panc qw(set_panc_includepath);
+
+use Test::Quattor::TextRender::Suite;
+
+use Cwd qw(getcwd abs_path);
 
 use base qw(Test::Quattor::TextRender);
 
@@ -96,6 +102,19 @@ sub test
     $self->test_gather_pan();
     
     # Set panc include dirs
+    $self->make_namespace($self->{panpath}, $self->{pannamespace});
+    set_panc_includepath($self->{namespacepath}, abs_path($ENV{QUATTOR_TEST_TEMPLATE_LIBRARY_CORE}));
+
+    my $testspath = "$self->{basepath}/$self->{service}";
+    $testspath .= "/$self->{version}" if (exists($self->{version}));
+
+    my $base = getcwd()."/src/test/resources";
+    my $st = Test::Quattor::TextRender::Suite->new(
+        includepath => dirname($self->{basepath}), # metaconfig relpath
+        testspath => "$testspath/tests",
+        );
+
+    $st->test();
     
 }
 
