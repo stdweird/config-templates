@@ -3,22 +3,19 @@ use warnings;
 
 use Test::More;
 use Test::MockModule;
-use Test::Quattor::TextRender::RegexpTest;
-
-use EDG::WP4::CCM::Element qw(escape);
+use Test::Quattor::RegexpTest;
 
 use Readonly;
-
 
 =pod
 
 =head1 DESCRIPTION
 
-Test the TextRender RegexpTest test block.
+Test the RegexpTest test block.
 
 =cut
 
-my $tr = Test::Quattor::TextRender::RegexpTest->new();
+my $tr = Test::Quattor::RegexpTest->new();
 
 =pod
 

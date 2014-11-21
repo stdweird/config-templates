@@ -3,7 +3,7 @@ use warnings;
 
 use Test::More;
 use Test::MockModule;
-use Test::Quattor::TextRender::RegexpTest;
+use Test::Quattor::RegexpTest;
 
 use EDG::WP4::CCM::Element qw(escape);
 
@@ -81,12 +81,12 @@ Readonly::Hash my %FLAGS_ALIAS_HASH => {
 
 =head1 DESCRIPTION
 
-Test the TextRender RegexpTest unittest flags.
+Test the RegexpTest unittest flags.
 
 =cut
 
 # Prepare the namespacepath
-my $tr = Test::Quattor::TextRender::RegexpTest->new();
+my $tr = Test::Quattor::RegexpTest->new();
 
 is_deeply(
     $tr->{flags},
