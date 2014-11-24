@@ -341,16 +341,6 @@ sub postprocess
     }
 }
 
-# run tests
-#   run the tests
-#   2 modes:
-#       unordered: regexps can be matched anywhere
-#       ordered: regexps can be matched in text following previous match
-#       impl: run everything unordered, keep track of match index
-#           for ordered, verify the indexes
-#           also for count? only count from previous match
-
-
 =pod
 
 =head2 test
@@ -387,3 +377,5 @@ sub test
 
     $self->info("END test for $self->{description}");
 }
+
+1;
